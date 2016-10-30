@@ -41,7 +41,9 @@ exports.query = function (collection) {
         });
 
         formatFunctions.forEach(function (item) {
-            newPerson[item.property] = item.formater(newPerson[item.property]);
+            if (selection.indexOf(item.property) !== -1) {
+                newPerson[item.property] = item.formater(newPerson[item.property]);
+            }
         });
 
         result.push(newPerson);
