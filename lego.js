@@ -63,9 +63,15 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function () {
-        selection = selection.filter(function (property) {
-            return args.indexOf(property) !== -1;
+        args = args.filter(function (property) {
+            return selection.indexOf(property) !== -1;
         });
+
+        if (args.length) {
+            selection = selection.filter(function (property) {
+                return args.indexOf(property) !== -1;
+            });
+        }
     };
 };
 
@@ -77,6 +83,8 @@ exports.select = function () {
  * @returns {Function}
  */
 exports.filterIn = function (property, values) {
+    values = [].concat(values);
+
     return function () {
         roster = roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
