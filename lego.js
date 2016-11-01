@@ -4,7 +4,7 @@
  * Сделано задание на звездочку
  * Реализованы методы or и and
  */
-exports.isStar = false;
+exports.isStar = true;
 
 var roster;
 var selection;
@@ -183,7 +183,11 @@ if (exports.isStar) {
             var result = [];
             var listCopy = getCopy(list);
             functions.forEach(function (action) {
-                result = result.concat(action(listCopy));
+                action(listCopy).forEach(function (person) {
+                    if (result.indexOf(person) === -1) {
+                        result.push(person);
+                    }
+                });
             });
 
             return result;
