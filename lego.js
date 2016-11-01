@@ -6,20 +6,23 @@
  */
 exports.isStar = true;
 
+var roster;
+var selection;
+var formatFunctions = [];
+var limit;
+
 function getCopy(item) {
     var result = [];
     item.forEach(function (person) {
-        var personCopy = {};
+        var clone = {};
         Object.keys(person).forEach(function (key) {
-            personCopy[key] = person[key];
+            clone[key] = person[key];
         });
-        result.push(personCopy);
+        result.push(clone);
     });
 
     return result;
 }
-
-var PRIORITY = ['limit', 'format', 'select'];
 
 /**
  * Запрос к коллекции
@@ -28,19 +31,39 @@ var PRIORITY = ['limit', 'format', 'select'];
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = getCopy(collection);
+    roster = getCopy(collection);
+    selection = Object.keys(roster[0]);
     var params = [].slice.call(arguments);
     params.splice(0, 1);
-
-    params.sort(function (a, b) {
-        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
-    });
 
     params.forEach(function (opperator) {
         roster = opperator(roster);
     });
 
-    return roster;
+    if (limit && !limit.isNaN && limit > 0) {
+        roster.splice(limit);
+    }
+
+    var result = [];
+    roster.forEach(function (person) {
+        var newPerson = {};
+
+        selection.forEach(function (property) {
+            newPerson[property] = person[property];
+        });
+
+        formatFunctions.forEach(function (item) {
+            if (selection.indexOf(item.property) !== -1) {
+                newPerson[item.property] = item.formater(newPerson[item.property]);
+            }
+        });
+
+        result.push(newPerson);
+    });
+    formatFunctions = [];
+    limit = undefined;
+
+    return result;
 };
 
 
@@ -50,20 +73,20 @@ exports.query = function (collection) {
  * @returns {Function}
  */
 exports.select = function () {
-    var selectors = [].slice.call(arguments);
+    var args = [].slice.call(arguments);
 
-    return function select(list) {
-        return list.map(function (person) {
-            var newPerson = {};
-
-            selectors.forEach(function (selector) {
-                if (Object.keys(person).indexOf(selector) !== -1) {
-                    newPerson[selector] = person[selector];
-                }
-            });
-
-            return newPerson;
+    return function (list) {
+        args = args.filter(function (property) {
+            return selection.indexOf(property) !== -1;
         });
+
+        if (args.length) {
+            selection = selection.filter(function (property) {
+                return args.indexOf(property) !== -1;
+            });
+        }
+
+        return list;
     };
 };
 
@@ -77,10 +100,12 @@ exports.select = function () {
 exports.filterIn = function (property, values) {
     values = [].concat(values);
 
-    return function filterIn(list) {
-        return list.filter(function (person) {
+    return function (list) {
+        list = list.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
+
+        return list;
     };
 };
 
@@ -96,10 +121,18 @@ exports.sortBy = function (property, order) {
         desc: -1
     };
 
-    return function sortBy(list) {
-        return list.sort(function (a, b) {
-            return (dir[order]) * (a[property] - b[property]);
+    return function (list) {
+        list = list.sort(function (a, b) {
+            a = a[property];
+            b = b[property];
+            if (a === b) {
+                return 0;
+            }
+
+            return a < b ? - dir[order] : dir[order];
         });
+
+        return list;
     };
 };
 
@@ -110,14 +143,12 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function format(list) {
-        return list.map(function (person) {
-            if (Object.keys(person).indexOf(property) !== -1) {
-                person[property] = formatter(person[property]);
-            }
+    return function () {
+        formatFunctions.push(
+            { property: property, formater: formatter }
+        );
 
-            return person;
-        });
+        return roster;
     };
 };
 
@@ -128,10 +159,11 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
-    count = count > 0 ? count : 0;
 
-    return function limit(list) {
-        return list.slice(0, count);
+    return function () {
+        limit = limit < count ? limit : count;
+
+        return roster;
     };
 };
 
@@ -147,11 +179,11 @@ if (exports.isStar) {
     exports.or = function () {
         var functions = [].slice.call(arguments);
 
-        return function or(list) {
+        return function (list) {
             var result = [];
             var listCopy = getCopy(list);
-            functions.forEach(function (filter) {
-                result = result.concat(filter(listCopy));
+            functions.forEach(function (action) {
+                result = result.concat(action(listCopy));
             });
 
             return result;
@@ -167,10 +199,10 @@ if (exports.isStar) {
     exports.and = function () {
         var functions = [].slice.call(arguments);
 
-        return function and(list) {
+        return function (list) {
             var result = getCopy(list);
-            functions.forEach(function (filter) {
-                result = filter(result);
+            functions.forEach(function (action) {
+                result = action(result);
             });
 
             return result;
