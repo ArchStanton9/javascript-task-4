@@ -6,23 +6,20 @@
  */
 exports.isStar = true;
 
-var roster;
-var selection;
-var formatFunctions = [];
-var limit;
-
 function getCopy(item) {
     var result = [];
     item.forEach(function (person) {
-        var clone = {};
+        var personCopy = {};
         Object.keys(person).forEach(function (key) {
-            clone[key] = person[key];
+            personCopy[key] = person[key];
         });
-        result.push(clone);
+        result.push(personCopy);
     });
 
     return result;
 }
+
+var PRIORITY = ['limit', 'format', 'select'];
 
 /**
  * Запрос к коллекции
@@ -31,39 +28,19 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    roster = getCopy(collection);
-    selection = Object.keys(roster[0]);
+    var roster = getCopy(collection);
     var params = [].slice.call(arguments);
     params.splice(0, 1);
+
+    params.sort(function (a, b) {
+        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
+    });
 
     params.forEach(function (opperator) {
         roster = opperator(roster);
     });
 
-    if (limit && !limit.isNaN && limit > 0) {
-        roster.splice(limit);
-    }
-
-    var result = [];
-    roster.forEach(function (person) {
-        var newPerson = {};
-
-        selection.forEach(function (property) {
-            newPerson[property] = person[property];
-        });
-
-        formatFunctions.forEach(function (item) {
-            if (selection.indexOf(item.property) !== -1) {
-                newPerson[item.property] = item.formater(newPerson[item.property]);
-            }
-        });
-
-        result.push(newPerson);
-    });
-    formatFunctions = [];
-    limit = undefined;
-
-    return result;
+    return roster;
 };
 
 
@@ -73,20 +50,20 @@ exports.query = function (collection) {
  * @returns {Function}
  */
 exports.select = function () {
-    var args = [].slice.call(arguments);
+    var selectors = [].slice.call(arguments);
 
-    return function (list) {
-        args = args.filter(function (property) {
-            return selection.indexOf(property) !== -1;
-        });
+    return function select(roster) {
+        return roster.map(function (person) {
+            var newPerson = {};
 
-        if (args.length) {
-            selection = selection.filter(function (property) {
-                return args.indexOf(property) !== -1;
+            selectors.forEach(function (selector) {
+                if (Object.keys(person).indexOf(selector) !== -1) {
+                    newPerson[selector] = person[selector];
+                }
             });
-        }
 
-        return list;
+            return newPerson;
+        });
     };
 };
 
@@ -100,12 +77,10 @@ exports.select = function () {
 exports.filterIn = function (property, values) {
     values = [].concat(values);
 
-    return function (list) {
-        list = list.filter(function (person) {
+    return function filterIn(roster) {
+        return roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
-
-        return list;
     };
 };
 
@@ -121,18 +96,10 @@ exports.sortBy = function (property, order) {
         desc: -1
     };
 
-    return function (list) {
-        list = list.sort(function (a, b) {
-            a = a[property];
-            b = b[property];
-            if (a === b) {
-                return 0;
-            }
-
-            return a < b ? - dir[order] : dir[order];
+    return function sortBy(roster) {
+        return roster.sort(function (a, b) {
+            return (dir[order]) * (a[property] - b[property]);
         });
-
-        return list;
     };
 };
 
@@ -143,12 +110,14 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function () {
-        formatFunctions.push(
-            { property: property, formater: formatter }
-        );
+    return function format(roster) {
+        return roster.map(function (person) {
+            if (Object.keys(person).indexOf(property) !== -1) {
+                person[property] = formatter(person[property]);
+            }
 
-        return roster;
+            return person;
+        });
     };
 };
 
@@ -159,11 +128,10 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
+    count = count > 0 ? count : 0;
 
-    return function () {
-        limit = limit < count ? limit : count;
-
-        return roster;
+    return function limit(roster) {
+        return roster.slice(0, count);
     };
 };
 
@@ -179,11 +147,11 @@ if (exports.isStar) {
     exports.or = function () {
         var functions = [].slice.call(arguments);
 
-        return function (list) {
+        return function or(roster) {
             var result = [];
-            var listCopy = getCopy(list);
-            functions.forEach(function (action) {
-                result = result.concat(action(listCopy));
+            var rosterCopy = getCopy(roster);
+            functions.forEach(function (filter) {
+                result = result.concat(filter(rosterCopy));
             });
 
             return result;
@@ -199,10 +167,10 @@ if (exports.isStar) {
     exports.and = function () {
         var functions = [].slice.call(arguments);
 
-        return function (list) {
-            var result = getCopy(list);
-            functions.forEach(function (action) {
-                result = action(result);
+        return function and(roster) {
+            var result = getCopy(roster);
+            functions.forEach(function (filter) {
+                result = filter(result);
             });
 
             return result;
