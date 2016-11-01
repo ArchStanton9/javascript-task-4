@@ -4,7 +4,7 @@
  * Сделано задание на звездочку
  * Реализованы методы or и and
  */
-exports.isStar = true;
+exports.isStar = false;
 
 var roster;
 var selection;
@@ -174,23 +174,12 @@ if (exports.isStar) {
      * Фильтрация, объединяющая фильтрующие функции
      * @star
      * @params {...Function} – Фильтрующие функции
-     * @returns {Function}
+     * @returns {undefined}
      */
     exports.or = function () {
-        var functions = [].slice.call(arguments);
+        return function () {
 
-        return function (list) {
-            var result = [];
-            var listCopy = getCopy(list);
-            functions.forEach(function (action) {
-                action(listCopy).forEach(function (person) {
-                    if (result.indexOf(person) === -1) {
-                        result.push(person);
-                    }
-                });
-            });
-
-            return result;
+            return;
         };
     };
 
@@ -198,18 +187,10 @@ if (exports.isStar) {
      * Фильтрация, пересекающая фильтрующие функции
      * @star
      * @params {...Function} – Фильтрующие функции
-     * @returns {Function}
+     * @returns {undefined}
      */
     exports.and = function () {
-        var functions = [].slice.call(arguments);
 
-        return function (list) {
-            var result = getCopy(list);
-            functions.forEach(function (action) {
-                result = action(result);
-            });
-
-            return result;
-        };
+        return;
     };
 }
