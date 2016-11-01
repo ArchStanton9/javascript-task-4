@@ -6,10 +6,23 @@
  */
 exports.isStar = true;
 
-var roster = [];
+var roster;
 var selection;
 var formatFunctions = [];
 var limit;
+
+function getCopy(item) {
+    var result = [];
+    item.forEach(function (person) {
+        var clone = {};
+        Object.keys(person).forEach(function (key) {
+            clone[key] = person[key];
+        });
+        result.push(clone);
+    });
+
+    return result;
+}
 
 /**
  * Запрос к коллекции
@@ -18,18 +31,17 @@ var limit;
  * @returns {Array}
  */
 exports.query = function (collection) {
-    roster = collection;
+    roster = getCopy(collection);
     selection = Object.keys(roster[0]);
     var params = [].slice.call(arguments);
     params.splice(0, 1);
 
     params.forEach(function (opperator) {
-        opperator.call(roster);
+        roster = opperator(roster);
     });
 
     if (limit && !limit.isNaN) {
         roster.splice(limit);
-        limit = undefined;
     }
 
     var result = [];
@@ -49,6 +61,7 @@ exports.query = function (collection) {
         result.push(newPerson);
     });
     formatFunctions = [];
+    limit = undefined;
 
     return result;
 };
@@ -62,7 +75,7 @@ exports.query = function (collection) {
 exports.select = function () {
     var args = [].slice.call(arguments);
 
-    return function () {
+    return function (list) {
         args = args.filter(function (property) {
             return selection.indexOf(property) !== -1;
         });
@@ -72,6 +85,8 @@ exports.select = function () {
                 return args.indexOf(property) !== -1;
             });
         }
+
+        return list;
     };
 };
 
@@ -85,10 +100,12 @@ exports.select = function () {
 exports.filterIn = function (property, values) {
     values = [].concat(values);
 
-    return function () {
-        roster = roster.filter(function (person) {
+    return function (list) {
+        list = list.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
+
+        return list;
     };
 };
 
@@ -104,8 +121,8 @@ exports.sortBy = function (property, order) {
         desc: -1
     };
 
-    return function () {
-        roster = roster.sort(function (a, b) {
+    return function (list) {
+        list = list.sort(function (a, b) {
             a = a[property];
             b = b[property];
             if (a === b) {
@@ -114,6 +131,8 @@ exports.sortBy = function (property, order) {
 
             return a < b ? - dir[order] : dir[order];
         });
+
+        return list;
     };
 };
 
@@ -128,6 +147,8 @@ exports.format = function (property, formatter) {
         formatFunctions.push(
             { property: property, formater: formatter }
         );
+
+        return roster;
     };
 };
 
@@ -141,6 +162,8 @@ exports.limit = function (count) {
 
     return function () {
         limit = limit < count ? limit : count;
+
+        return roster;
     };
 };
 
@@ -156,16 +179,14 @@ if (exports.isStar) {
     exports.or = function () {
         var functions = [].slice.call(arguments);
 
-        return function () {
-            var backup = roster;
+        return function (list) {
             var result = [];
+            var listCopy = getCopy(list);
             functions.forEach(function (action) {
-                action.call();
-                result = result.concat(roster);
-                roster = backup;
+                result = result.concat(action(listCopy));
             });
 
-            roster = result;
+            return result;
         };
     };
 
@@ -178,10 +199,13 @@ if (exports.isStar) {
     exports.and = function () {
         var functions = [].slice.call(arguments);
 
-        return function () {
+        return function (list) {
+            var result = getCopy(list);
             functions.forEach(function (action) {
-                action.call();
+                result = action(result);
             });
+
+            return result;
         };
     };
 }
