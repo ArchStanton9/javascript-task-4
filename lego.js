@@ -6,10 +6,6 @@
  */
 exports.isStar = true;
 
-var formatFunctions = [];
-var selection = [];
-var limit;
-
 function getCopy(item) {
     var result = [];
     item.forEach(function (person) {
@@ -23,6 +19,8 @@ function getCopy(item) {
     return result;
 }
 
+var PRIORITY = ['limit', 'format', 'select'];
+
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -32,37 +30,17 @@ function getCopy(item) {
 exports.query = function (collection) {
     var roster = getCopy(collection);
     var params = [].slice.call(arguments);
-    selection = Object.keys(roster[0]);
     params.splice(0, 1);
+
+    params.sort(function (a, b) {
+        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
+    });
 
     params.forEach(function (opperator) {
         roster = opperator(roster);
     });
 
-    if (limit) {
-        roster.splice(limit);
-        limit = undefined;
-    }
-
-    var result = [];
-    roster.forEach(function (person) {
-        var newPerson = {};
-
-        selection.forEach(function (property) {
-            newPerson[property] = person[property];
-        });
-
-        formatFunctions.forEach(function (item) {
-            if (selection.indexOf(item.property) !== -1) {
-                newPerson[item.property] = item.formater(newPerson[item.property]);
-            }
-        });
-
-        result.push(newPerson);
-    });
-    formatFunctions = [];
-
-    return result;
+    return roster;
 };
 
 
@@ -74,18 +52,18 @@ exports.query = function (collection) {
 exports.select = function () {
     var selectors = [].slice.call(arguments);
 
-    return function select(roster) {
-        selectors = selectors.filter(function (property) {
-            return selection.indexOf(property) !== -1;
-        });
+    return function select(list) {
+        return list.map(function (person) {
+            var newPerson = {};
 
-        if (selectors.length) {
-            selection = selection.filter(function (property) {
-                return selectors.indexOf(property) !== -1;
+            selectors.forEach(function (selector) {
+                if (Object.keys(person).indexOf(selector) !== -1) {
+                    newPerson[selector] = person[selector];
+                }
             });
-        }
 
-        return roster;
+            return newPerson;
+        });
     };
 };
 
@@ -99,8 +77,8 @@ exports.select = function () {
 exports.filterIn = function (property, values) {
     values = [].concat(values);
 
-    return function filterIn(roster) {
-        return roster.filter(function (person) {
+    return function filterIn(list) {
+        return list.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
     };
@@ -118,8 +96,8 @@ exports.sortBy = function (property, order) {
         desc: -1
     };
 
-    return function sortBy(roster) {
-        return roster.sort(function (a, b) {
+    return function sortBy(list) {
+        return list.sort(function (a, b) {
             return (dir[order]) * (a[property] - b[property]);
         });
     };
@@ -132,15 +110,17 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function format(roster) {
-        formatFunctions.push({
-            property: property,
-            formater: formatter
-        });
+    return function format(list) {
+        return list.map(function (person) {
+            if (Object.keys(person).indexOf(property) !== -1) {
+                person[property] = formatter(person[property]);
+            }
 
-        return roster;
+            return person;
+        });
     };
 };
+
 
 /**
  * Ограничение количества элементов в коллекции
@@ -150,10 +130,8 @@ exports.format = function (property, formatter) {
 exports.limit = function (count) {
     count = count > 0 ? count : 0;
 
-    return function (roster) {
-        limit = limit < count ? limit : count;
-
-        return roster;
+    return function limit(list) {
+        return list.slice(0, count);
     };
 };
 
@@ -169,11 +147,11 @@ if (exports.isStar) {
     exports.or = function () {
         var functions = [].slice.call(arguments);
 
-        return function or(roster) {
+        return function or(list) {
             var result = [];
-            var rosterCopy = getCopy(roster);
+            var listCopy = getCopy(list);
             functions.forEach(function (filter) {
-                result = result.concat(filter(rosterCopy));
+                result = result.concat(filter(listCopy));
             });
 
             return result;
@@ -189,8 +167,8 @@ if (exports.isStar) {
     exports.and = function () {
         var functions = [].slice.call(arguments);
 
-        return function and(roster) {
-            var result = getCopy(roster);
+        return function and(list) {
+            var result = getCopy(list);
             functions.forEach(function (filter) {
                 result = filter(result);
             });
