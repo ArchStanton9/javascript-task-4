@@ -6,6 +6,10 @@
  */
 exports.isStar = true;
 
+var formatFunctions = [];
+var selection = [];
+var limit;
+
 function getCopy(item) {
     var result = [];
     item.forEach(function (person) {
@@ -19,8 +23,6 @@ function getCopy(item) {
     return result;
 }
 
-var PRIORITY = ['limit', 'format', 'select'];
-
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -30,17 +32,37 @@ var PRIORITY = ['limit', 'format', 'select'];
 exports.query = function (collection) {
     var roster = getCopy(collection);
     var params = [].slice.call(arguments);
+    selection = Object.keys(roster[0]);
     params.splice(0, 1);
-
-    params.sort(function (a, b) {
-        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
-    });
 
     params.forEach(function (opperator) {
         roster = opperator(roster);
     });
 
-    return roster;
+    if (limit) {
+        roster.splice(limit);
+        limit = undefined;
+    }
+
+    var result = [];
+    roster.forEach(function (person) {
+        var newPerson = {};
+
+        selection.forEach(function (property) {
+            newPerson[property] = person[property];
+        });
+
+        formatFunctions.forEach(function (item) {
+            if (selection.indexOf(item.property) !== -1) {
+                newPerson[item.property] = item.formater(newPerson[item.property]);
+            }
+        });
+
+        result.push(newPerson);
+    });
+    formatFunctions = [];
+
+    return result;
 };
 
 
@@ -53,17 +75,17 @@ exports.select = function () {
     var selectors = [].slice.call(arguments);
 
     return function select(roster) {
-        return roster.map(function (person) {
-            var newPerson = {};
-
-            selectors.forEach(function (selector) {
-                if (Object.keys(person).indexOf(selector) !== -1) {
-                    newPerson[selector] = person[selector];
-                }
-            });
-
-            return newPerson;
+        selectors = selectors.filter(function (property) {
+            return selection.indexOf(property) !== -1;
         });
+
+        if (selectors.length) {
+            selection = selection.filter(function (property) {
+                return selectors.indexOf(property) !== -1;
+            });
+        }
+
+        return roster;
     };
 };
 
@@ -111,16 +133,14 @@ exports.sortBy = function (property, order) {
  */
 exports.format = function (property, formatter) {
     return function format(roster) {
-        return roster.map(function (person) {
-            if (Object.keys(person).indexOf(property) !== -1) {
-                person[property] = formatter(person[property]);
-            }
-
-            return person;
+        formatFunctions.push({
+            property: property,
+            formater: formatter
         });
+
+        return roster;
     };
 };
-
 
 /**
  * Ограничение количества элементов в коллекции
@@ -130,8 +150,10 @@ exports.format = function (property, formatter) {
 exports.limit = function (count) {
     count = count > 0 ? count : 0;
 
-    return function limit(roster) {
-        return roster.slice(0, count);
+    return function (roster) {
+        limit = limit < count ? limit : count;
+
+        return roster;
     };
 };
 
