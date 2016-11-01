@@ -40,7 +40,7 @@ exports.query = function (collection) {
         roster = opperator(roster);
     });
 
-    if (limit && !limit.isNaN) {
+    if (limit && !limit.isNaN && limit > 0) {
         roster.splice(limit);
     }
 
