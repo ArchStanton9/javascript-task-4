@@ -11,10 +11,6 @@ var DIR = {
     desc: -1
 };
 
-function getCopy(item) {
-    return JSON.parse(JSON.stringify(item));
-}
-
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -22,7 +18,7 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = getCopy(collection);
+    var roster = collection;
 
     var selection = {
         filterIn: [],
@@ -41,7 +37,7 @@ exports.query = function (collection) {
     Object.keys(selection).forEach(function (selector) {
         selection[selector].forEach(function (opperator) {
             console.info(opperator.name);
-            roster = opperator(getCopy(roster));
+            roster = opperator(roster);
         });
     });
 
@@ -89,13 +85,7 @@ exports.select = function () {
  * @returns {Function}
  */
 exports.filterIn = function (property, values) {
-    values = [].concat(values);
-
     return function filterIn(roster) {
-        if (Object.keys(roster[0]).indexOf(property) === -1) {
-            return roster;
-        }
-
         return roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
@@ -125,10 +115,6 @@ exports.sortBy = function (property, order) {
  */
 exports.format = function (property, formatter) {
     return function format(roster) {
-        if (Object.keys(roster[0]).indexOf(property) === -1) {
-            return roster;
-        }
-
         return roster.map(function (person) {
             person[property] = formatter(person[property]);
 
@@ -145,7 +131,6 @@ exports.format = function (property, formatter) {
  */
 exports.limit = function (count) {
     return function limit(roster) {
-
         return roster.slice(0, count);
     };
 };
