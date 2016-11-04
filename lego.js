@@ -88,6 +88,10 @@ exports.filterIn = function (property, values) {
     values = [].concat(values);
 
     return function filterIn(roster) {
+        if (Object.keys(roster).indexOf(property) === -1) {
+            return roster;
+        }
+
         return roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
@@ -117,6 +121,10 @@ exports.sortBy = function (property, order) {
  */
 exports.format = function (property, formatter) {
     return function format(roster) {
+        if (Object.keys(roster).indexOf(property) === -1) {
+            return roster;
+        }
+
         return roster.map(function (person) {
             person[property] = formatter(person[property]);
 
