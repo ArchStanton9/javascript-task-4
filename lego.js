@@ -6,12 +6,8 @@
  */
 exports.isStar = false;
 
-var roster;
-var selection;
-var formatFunctions = [];
-var limit;
-
 function getCopy(item) {
+    console.info('getCoppy()');
     var result = [];
     item.forEach(function (person) {
         var clone = {};
@@ -31,39 +27,49 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    roster = getCopy(collection);
-    selection = Object.keys(roster[0]);
+    var selection = {
+        roster: getCopy(collection),
+        properties: Object.keys(collection[0]),
+        limit: undefined,
+        formatter: [],
+        getResult: function () {
+            var result = [];
+
+            if (this.limit && this.limit > 0) {
+                console.info('limitation');
+                this.roster.splice(this.limit);
+            }
+
+            this.roster.forEach(function (person) {
+                var newPerson = {};
+
+                console.info('creating selection');
+                selection.properties.forEach(function (property) {
+                    newPerson[property] = person[property];
+                });
+
+                this.formatter.forEach(function (item) {
+                    console.info('formating');
+                    if (selection.properties.indexOf(item.property) !== -1) {
+                        newPerson[item.property] = item.formatter(newPerson[item.property]);
+                    }
+                });
+
+                result.push(newPerson);
+            }, this);
+
+            return result;
+        }
+    };
+
     var params = [].slice.call(arguments);
     params.splice(0, 1);
 
     params.forEach(function (opperator) {
-        roster = opperator(roster);
+        opperator(selection);
     });
 
-    if (limit && !limit.isNaN && limit > 0) {
-        roster.splice(limit);
-    }
-
-    var result = [];
-    roster.forEach(function (person) {
-        var newPerson = {};
-
-        selection.forEach(function (property) {
-            newPerson[property] = person[property];
-        });
-
-        formatFunctions.forEach(function (item) {
-            if (selection.indexOf(item.property) !== -1) {
-                newPerson[item.property] = item.formater(newPerson[item.property]);
-            }
-        });
-
-        result.push(newPerson);
-    });
-    formatFunctions = [];
-    limit = undefined;
-
-    return result;
+    return selection.getResult();
 };
 
 
@@ -74,19 +80,19 @@ exports.query = function (collection) {
  */
 exports.select = function () {
     var args = [].slice.call(arguments);
+    console.info('select(export)');
 
-    return function (list) {
+    return function (selection) {
+        console.info('select');
         args = args.filter(function (property) {
-            return selection.indexOf(property) !== -1;
+            return selection.properties.indexOf(property) !== -1;
         });
 
         if (args.length) {
-            selection = selection.filter(function (property) {
+            selection.properties = selection.properties.filter(function (property) {
                 return args.indexOf(property) !== -1;
             });
         }
-
-        return list;
     };
 };
 
@@ -99,13 +105,14 @@ exports.select = function () {
  */
 exports.filterIn = function (property, values) {
     values = [].concat(values);
+    console.info('filterIn(export)');
 
-    return function (list) {
-        list = list.filter(function (person) {
+    return function (selection) {
+        console.info('filterIn');
+
+        selection.roster = selection.roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
-
-        return list;
     };
 };
 
@@ -120,19 +127,14 @@ exports.sortBy = function (property, order) {
         asc: 1,
         desc: -1
     };
+    console.info('sortBy(export)');
 
-    return function (list) {
-        list = list.sort(function (a, b) {
-            a = a[property];
-            b = b[property];
-            if (a === b) {
-                return 0;
-            }
+    return function (selection) {
+        console.info('sortBy');
 
-            return a < b ? - dir[order] : dir[order];
+        return selection.roster.sort(function (a, b) {
+            return dir[order] * (a[property] - b[property]);
         });
-
-        return list;
     };
 };
 
@@ -143,12 +145,13 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function () {
-        formatFunctions.push(
-            { property: property, formater: formatter }
-        );
+    console.info('format(export)');
 
-        return roster;
+    return function (selection) {
+        console.info('format');
+        selection.formatter.push(
+            { property: property, formatter: formatter }
+        );
     };
 };
 
@@ -159,11 +162,13 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
+    console.info('limit(export)');
 
-    return function () {
-        limit = limit < count ? limit : count;
-
-        return roster;
+    return function (selection) {
+        console.info('limit');
+        if (!selection.limit || selection.limit > count) {
+            selection.limit = count;
+        }
     };
 };
 
