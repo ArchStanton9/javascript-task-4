@@ -54,9 +54,19 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function select(roster) {
+        var keys = Object.keys(roster[0]);
+
+        args = args.filter(function (arg) {
+            return keys.indexOf(arg) !== -1;
+        });
+
+        if (!args.length) {
+            return roster;
+        }
+
         return roster.map(function (person) {
             var copy = {};
-            Object.keys(person).forEach(function (key) {
+            keys.forEach(function (key) {
                 if (args.indexOf(key) !== -1) {
                     copy[key] = person[key];
                 }
@@ -122,8 +132,6 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
-    count = count < 0 ? 0 : count;
-
     return function limit(roster) {
 
         return roster.slice(0, count);
