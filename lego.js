@@ -6,20 +6,6 @@
  */
 exports.isStar = false;
 
-function getCopy(item) {
-    console.info('getCoppy()');
-    var result = [];
-    item.forEach(function (person) {
-        var clone = {};
-        Object.keys(person).forEach(function (key) {
-            clone[key] = person[key];
-        });
-        result.push(clone);
-    });
-
-    return result;
-}
-
 var DIR = {
     asc: 1,
     desc: -1
@@ -32,7 +18,7 @@ var DIR = {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = getCopy(collection);
+    var roster = JSON.parse(JSON.stringify(collection));
 
     var selection = {
         filterIn: [],
@@ -68,6 +54,7 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function select(roster) {
+
         return roster.map(function (person) {
             var copy = {};
             Object.keys(person).forEach(function (key) {
