@@ -54,7 +54,6 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function select(roster) {
-
         return roster.map(function (person) {
             var copy = {};
             Object.keys(person).forEach(function (key) {
@@ -123,7 +122,10 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
+    count = count < 0 ? 0 : count;
+
     return function limit(roster) {
+
         return roster.slice(0, count);
     };
 };
