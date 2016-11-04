@@ -20,6 +20,11 @@ function getCopy(item) {
     return result;
 }
 
+var DIR = {
+    asc: 1,
+    desc: -1
+};
+
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -27,49 +32,30 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
+    var roster = getCopy(collection);
+
     var selection = {
-        roster: getCopy(collection),
-        properties: Object.keys(collection[0]),
-        limit: undefined,
-        formatter: [],
-        getResult: function () {
-            var result = [];
-
-            if (this.limit && this.limit > 0) {
-                console.info('limitation');
-                this.roster.splice(this.limit);
-            }
-
-            this.roster.forEach(function (person) {
-                var newPerson = {};
-
-                console.info('creating selection');
-                selection.properties.forEach(function (property) {
-                    newPerson[property] = person[property];
-                });
-
-                this.formatter.forEach(function (item) {
-                    console.info('formating');
-                    if (selection.properties.indexOf(item.property) !== -1) {
-                        newPerson[item.property] = item.formatter(newPerson[item.property]);
-                    }
-                });
-
-                result.push(newPerson);
-            }, this);
-
-            return result;
-        }
+        filterIn: [],
+        sortBy: [],
+        limit: [],
+        select: [],
+        format: []
     };
 
     var params = [].slice.call(arguments);
-    params.splice(0, 1);
 
-    params.forEach(function (opperator) {
-        opperator(selection);
+    params.slice(1).forEach(function (opperator) {
+        selection[opperator.name].push(opperator);
     });
 
-    return selection.getResult();
+    Object.keys(selection).forEach(function (selector) {
+        selection[selector].forEach(function (opperator) {
+            console.info(opperator.name);
+            roster = opperator(roster);
+        });
+    });
+
+    return roster;
 };
 
 
@@ -80,19 +66,18 @@ exports.query = function (collection) {
  */
 exports.select = function () {
     var args = [].slice.call(arguments);
-    console.info('select(export)');
 
-    return function (selection) {
-        console.info('select');
-        args = args.filter(function (property) {
-            return selection.properties.indexOf(property) !== -1;
-        });
-
-        if (args.length) {
-            selection.properties = selection.properties.filter(function (property) {
-                return args.indexOf(property) !== -1;
+    return function select(roster) {
+        return roster.map(function (person) {
+            var copy = {};
+            Object.keys(person).forEach(function (key) {
+                if (args.indexOf(key) !== -1) {
+                    copy[key] = person[key];
+                }
             });
-        }
+
+            return copy;
+        });
     };
 };
 
@@ -105,16 +90,14 @@ exports.select = function () {
  */
 exports.filterIn = function (property, values) {
     values = [].concat(values);
-    console.info('filterIn(export)');
 
-    return function (selection) {
-        console.info('filterIn');
-
-        selection.roster = selection.roster.filter(function (person) {
+    return function filterIn(roster) {
+        return roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
     };
 };
+
 
 /**
  * Сортировка коллекции по полю
@@ -123,17 +106,9 @@ exports.filterIn = function (property, values) {
  * @returns {Function}
  */
 exports.sortBy = function (property, order) {
-    var dir = {
-        asc: 1,
-        desc: -1
-    };
-    console.info('sortBy(export)');
-
-    return function (selection) {
-        console.info('sortBy');
-
-        return selection.roster.sort(function (a, b) {
-            return dir[order] * (a[property] - b[property]);
+    return function sortBy(list) {
+        return list.sort(function (a, b) {
+            return DIR[order] * (a[property] - b[property]);
         });
     };
 };
@@ -145,13 +120,12 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    console.info('format(export)');
+    return function format(roster) {
+        return roster.map(function (person) {
+            person[property] = formatter(person[property]);
 
-    return function (selection) {
-        console.info('format');
-        selection.formatter.push(
-            { property: property, formatter: formatter }
-        );
+            return person;
+        });
     };
 };
 
@@ -162,13 +136,8 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
-    console.info('limit(export)');
-
-    return function (selection) {
-        console.info('limit');
-        if (!selection.limit || selection.limit > count) {
-            selection.limit = count;
-        }
+    return function limit(roster) {
+        return roster.slice(0, count);
     };
 };
 
