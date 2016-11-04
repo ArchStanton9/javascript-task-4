@@ -11,6 +11,10 @@ var DIR = {
     desc: -1
 };
 
+function getCopy(item) {
+    return JSON.parse(JSON.stringify(item));
+}
+
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -18,14 +22,14 @@ var DIR = {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = collection;
+    var roster = getCopy(collection);
 
     var selection = {
         filterIn: [],
         sortBy: [],
         limit: [],
-        select: [],
-        format: []
+        format: [],
+        select: []
     };
 
     var params = [].slice.call(arguments);
@@ -76,7 +80,6 @@ exports.select = function () {
         });
     };
 };
-
 
 /**
  * Фильтрация поля по массиву значений
