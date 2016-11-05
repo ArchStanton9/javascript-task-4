@@ -12,6 +12,8 @@ var DIR = {
 };
 
 var PRIORITY = [
+    'filterIn',
+    'sortBy',
     'limit',
     'format',
     'select'
@@ -54,7 +56,6 @@ exports.select = function () {
                     delete person[key];
                 }
             });
-
 
             return person;
         });
