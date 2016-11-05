@@ -92,8 +92,8 @@ exports.select = function () {
  * @returns {Function}
  */
 exports.filterIn = function (property, values) {
-    return function filterIn(roster) {
-        return roster.slice().filter(function (person) {
+    return function filterIn(list) {
+        return list.slice().filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
     };
@@ -107,8 +107,8 @@ exports.filterIn = function (property, values) {
  * @returns {Function}
  */
 exports.sortBy = function (property, order) {
-    return function sortBy(roster) {
-        return roster.slice().sort(function (a, b) {
+    return function sortBy(list) {
+        return list.slice().sort(function (a, b) {
             return DIR[order] * (a[property] - b[property]);
         });
     };
@@ -121,8 +121,8 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function format(roster) {
-        return roster.slice().map(function (person) {
+    return function format(list) {
+        return list.slice().map(function (person) {
             person[property] = formatter(person[property]);
 
             return person;
@@ -137,8 +137,8 @@ exports.format = function (property, formatter) {
  * @returns {Function}
  */
 exports.limit = function (count) {
-    return function limit(roster) {
-        return roster.slice(0, count);
+    return function limit(list) {
+        return list.slice(0, count);
     };
 };
 
