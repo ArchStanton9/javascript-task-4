@@ -124,14 +124,7 @@ exports.sortBy = function (property, order) {
 
     return function (list) {
         list = list.sort(function (a, b) {
-
-            a = a[property];
-            b = b[property];
-            if (a === b) {
-                return 0;
-            }
-
-            return a < b ? - dir[order] : dir[order];
+            return dir[order] * (a[property] - b[property]);
         });
 
         return list;
