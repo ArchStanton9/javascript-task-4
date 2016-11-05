@@ -11,6 +11,7 @@ var DIR = {
     desc: -1
 };
 
+
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -52,19 +53,9 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function select(roster) {
-        var keys = Object.keys(roster[0]);
-
-        args = args.filter(function (arg) {
-            return keys.indexOf(arg) !== -1;
-        });
-
-        if (!args.length) {
-            return roster;
-        }
-
         return roster.slice().map(function (person) {
             var copy = {};
-            keys.forEach(function (key) {
+            Object.keys(person).forEach(function (key) {
                 if (args.indexOf(key) !== -1) {
                     copy[key] = person[key];
                 }
@@ -74,6 +65,7 @@ exports.select = function () {
         });
     };
 };
+
 
 /**
  * Фильтрация поля по массиву значений
