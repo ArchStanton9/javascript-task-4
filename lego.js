@@ -11,6 +11,11 @@ var DIR = {
     desc: -1
 };
 
+var PRIORITY = [
+    'limit',
+    'format',
+    'select'
+];
 
 /**
  * Запрос к коллекции
@@ -20,24 +25,14 @@ var DIR = {
  */
 exports.query = function (collection) {
     var roster = JSON.parse(JSON.stringify(collection));
-    var params = [].slice.call(arguments, 1);
+    var selectors = [].slice.call(arguments, 1);
 
-    var selectors = {
-        filterIn: [],
-        sortBy: [],
-        limit: [],
-        format: [],
-        select: []
-    };
-
-    params.forEach(function (operation) {
-        selectors[operation.name].push(operation);
+    selectors.sort(function (a, b) {
+        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
     });
 
-    Object.keys(selectors).forEach(function (selector) {
-        selectors[selector].forEach(function (operation) {
-            roster = operation(roster);
-        });
+    selectors.forEach(function (selector) {
+        roster = selector(roster);
     });
 
     return roster;
