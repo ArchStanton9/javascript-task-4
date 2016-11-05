@@ -34,13 +34,13 @@ exports.query = function (collection) {
 
     var params = [].slice.call(arguments);
 
+    if (params.length === 1) {
+        return collection;
+    }
+
     params.slice(1).forEach(function (opperator) {
         selection[opperator.name].push(opperator);
     });
-
-    if (!selection.length) {
-        return collection;
-    }
 
     Object.keys(selection).forEach(function (selector) {
         selection[selector].forEach(function (opperator) {
