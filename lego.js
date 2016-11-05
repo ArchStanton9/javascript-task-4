@@ -49,14 +49,14 @@ exports.select = function () {
 
     return function select(roster) {
         return roster.map(function (person) {
-            var copy = {};
             Object.keys(person).forEach(function (key) {
-                if (args.indexOf(key) !== -1) {
-                    copy[key] = person[key];
+                if (args.indexOf(key) === -1) {
+                    delete person[key];
                 }
             });
 
-            return copy;
+
+            return person;
         });
     };
 };
