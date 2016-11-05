@@ -1,167 +1,151 @@
 'use strict';
 
 /**
- * —делано задание на звездочку
- * –еализованы методы or и and
+ * Сделано задание на звездочку
+ * Реализованы методы or и and
  */
-exports.isStar = true;
+exports.isStar = false;
 
-var selection;
-var formatFunctions = [];
-var limit;
+var DIR = {
+    asc: 1,
+    desc: -1
+};
 
 function getCopy(item) {
-    var result = [];
-    item.forEach(function (person) {
-        var clone = {};
-        Object.keys(person).forEach(function (key) {
-            clone[key] = person[key];
-        });
-        result.push(clone);
-    });
-
-    return result;
+    return JSON.parse(JSON.stringify(item));
 }
 
 /**
- * «апрос к коллекции
+ * Запрос к коллекции
  * @param {Array} collection
- * @params {...Function} Ц ‘ункции дл¤ запроса
+ * @params {...Function} – Функции для запроса
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster;
-    roster = getCopy(collection);
-    selection = Object.keys(roster[0]);
+    var roster = getCopy(collection);
+
+    var selection = {
+        filterIn: [],
+        sortBy: [],
+        limit: [],
+        format: [],
+        select: []
+    };
+
     var params = [].slice.call(arguments);
-    params.splice(0, 1);
-    params.forEach(function (opperator) {
-        roster = opperator(roster);
-    });
 
-    if (limit && !limit.isNaN && limit > 0) {
-        roster.splice(limit);
-
+    if (params.length === 1) {
+        return collection;
     }
 
-    var result = [];
-    roster.forEach(function (person) {
-        var newPerson = {};
-
-        selection.forEach(function (property) {
-            newPerson[property] = person[property];
-        });
-
-        formatFunctions.forEach(function (item) {
-            if (selection.indexOf(item.property) !== -1) {
-                newPerson[item.property] = item.formater(newPerson[item.property]);
-            }
-        });
-
-        result.push(newPerson);
+    params.slice(1).forEach(function (opperator) {
+        selection[opperator.name].push(opperator);
     });
-    formatFunctions = [];
-    limit = undefined;
 
-    return result;
+    Object.keys(selection).forEach(function (selector) {
+        selection[selector].forEach(function (opperator) {
+            console.info(opperator.name);
+            roster = opperator(roster);
+        });
+    });
+
+    return roster;
 };
 
 
 /**
- * ¬ыбор полей
+ * Выбор полей
  * @params {...String}
  * @returns {Function}
  */
 exports.select = function () {
     var args = [].slice.call(arguments);
 
-    return function (list) {
-        args = args.filter(function (property) {
-            return selection.indexOf(property) !== -1;
+    return function select(roster) {
+        var keys = Object.keys(roster[0]);
+
+        args = args.filter(function (arg) {
+            return keys.indexOf(arg) !== -1;
         });
 
-        if (args.length) {
-            selection = selection.filter(function (property) {
-                return args.indexOf(property) !== -1;
-            });
+        if (!args.length) {
+            return roster;
         }
 
+        return roster.slice().map(function (person) {
+            var copy = {};
+            keys.forEach(function (key) {
+                if (args.indexOf(key) !== -1) {
+                    copy[key] = person[key];
+                }
+            });
 
-        return list;
+            return copy;
+        });
     };
 };
 
-
 /**
- * ‘ильтраци¤ пол¤ по массиву значений
- * @param {String} property Ц —войство дл¤ фильтрации
- * @param {Array} values Ц ƒоступные значени¤
+ * Фильтрация поля по массиву значений
+ * @param {String} property – Свойство для фильтрации
+ * @param {Array} values – Доступные значения
  * @returns {Function}
  */
 exports.filterIn = function (property, values) {
-    values = [].concat(values);
-
-    return function (list) {
-        list = list.filter(function (person) {
+    return function filterIn(roster) {
+        return roster.slice().filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
-
-        return list;
     };
 };
 
+
 /**
- * —ортировка коллекции по полю
- * @param {String} property Ц —войство дл¤ фильтрации
- * @param {String} order Ц ѕор¤док сортировки (asc - по возрастанию; desc Ц по убыванию)
+ * Сортировка коллекции по полю
+ * @param {String} property – Свойство для фильтрации
+ * @param {String} order – Порядок сортировки (asc - по возрастанию; desc – по убыванию)
  * @returns {Function}
  */
 exports.sortBy = function (property, order) {
-    var dir = {
-        asc: 1,
-        desc: -1
-    };
+    return function sortBy(roster) {
+        return roster.slice().sort(function (a, b) {
+            a = a[property];
+            b = b[property];
+            if (a === b) {
+                return 0;
+            }
 
-    return function (list) {
-        list = list.sort(function (a, b) {
-            return dir[order] * (a[property] - b[property]);
+            return a < b ? -DIR[order] : DIR[order];
         });
-
-        return list;
     };
 };
 
+
 /**
- * ‘орматирование пол¤
- * @param {String} property Ц —войство дл¤ фильтрации
- * @param {Function} formatter Ц ‘ункци¤ дл¤ форматировани¤
+ * Форматирование поля
+ * @param {String} property – Свойство для фильтрации
+ * @param {Function} formatter – Функция для форматирования
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function (list) {
-        formatFunctions.push(
-            { property: property, formater: formatter }
+    return function format(roster) {
+        return roster.slice().map(function (person) {
+            person[property] = formatter(person[property]);
 
-
-        );
-
-        return list;
+            return person;
+        });
     };
 };
 
 
 /**
- * ќграничение количества элементов в коллекции
- * @param {Number} count Ц ћаксимальное количество элементов
+ * Ограничение количества элементов в коллекции
+ * @param {Number} count – Максимальное количество элементов
  * @returns {Function}
  */
 exports.limit = function (count) {
-
-
-    return function (list) {
-        limit = limit < count ? limit : count;
-
-        return list;
+    return function limit(roster) {
+        return roster.slice(0, count);
     };
 };
 
@@ -169,42 +153,26 @@ exports.limit = function (count) {
 if (exports.isStar) {
 
     /**
-     * ‘ильтраци¤, объедин¤юща¤ фильтрующие функции
+     * Фильтрация, объединяющая фильтрующие функции
      * @star
-     * @params {...Function} Ц ‘ильтрующие функции
-     * @returns {Function}
+     * @params {...Function} – Фильтрующие функции
+     * @returns {undefined}
      */
     exports.or = function () {
-        var functions = [].slice.call(arguments);
+        return function () {
 
-        return function (list) {
-            var result = [];
-
-            var listCopy = getCopy(list);
-            functions.forEach(function (action) {
-                result = result.concat(action(listCopy));
-            });
-
-            return result;
+            return;
         };
     };
 
     /**
-     * ‘ильтраци¤, пересекающа¤ фильтрующие функции
+     * Фильтрация, пересекающая фильтрующие функции
      * @star
-     * @params {...Function} Ц ‘ильтрующие функции
-     * @returns {Function}
+     * @params {...Function} – Фильтрующие функции
+     * @returns {undefined}
      */
     exports.and = function () {
-        var functions = [].slice.call(arguments);
 
-        return function (list) {
-            var result = getCopy(list);
-            functions.forEach(function (action) {
-                result = action(result);
-            });
-
-            return result;
-        };
+        return;
     };
 }
