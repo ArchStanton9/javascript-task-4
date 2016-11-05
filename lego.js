@@ -11,10 +11,6 @@ var DIR = {
     desc: -1
 };
 
-function getCopy(item) {
-    return JSON.parse(JSON.stringify(item));
-}
-
 /**
  * Запрос к коллекции
  * @param {Array} collection
@@ -22,9 +18,10 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = getCopy(collection);
+    var roster = JSON.parse(JSON.stringify(collection));
+    var params = [].slice.call(arguments, 1);
 
-    var selection = {
+    var selectors = {
         filterIn: [],
         sortBy: [],
         limit: [],
@@ -32,20 +29,13 @@ exports.query = function (collection) {
         select: []
     };
 
-    var params = [].slice.call(arguments);
-
-    if (params.length === 1) {
-        return collection;
-    }
-
-    params.slice(1).forEach(function (opperator) {
-        selection[opperator.name].push(opperator);
+    params.forEach(function (opperator) {
+        selectors[opperator.name].push(opperator);
     });
 
-    Object.keys(selection).forEach(function (selector) {
-        selection[selector].forEach(function (opperator) {
-            console.info(opperator.name);
-            roster = opperator(roster);
+    Object.keys(selectors).forEach(function (selector) {
+        selectors[selector].forEach(function (operation) {
+            roster = operation(roster);
         });
     });
 
