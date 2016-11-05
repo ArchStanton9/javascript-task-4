@@ -38,6 +38,10 @@ exports.query = function (collection) {
         selection[opperator.name].push(opperator);
     });
 
+    if (!selection.length) {
+        return collection;
+    }
+
     Object.keys(selection).forEach(function (selector) {
         selection[selector].forEach(function (opperator) {
             console.info(opperator.name);
