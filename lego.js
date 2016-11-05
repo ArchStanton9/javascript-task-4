@@ -6,7 +6,6 @@
  */
 exports.isStar = true;
 
-var roster;
 var selection;
 var formatFunctions = [];
 var limit;
@@ -31,6 +30,7 @@ function getCopy(item) {
  * @returns {Array}
  */
 exports.query = function (collection) {
+    var roster;
     roster = getCopy(collection);
     selection = Object.keys(roster[0]);
     var params = [].slice.call(arguments);
@@ -145,14 +145,14 @@ exports.sortBy = function (property, order) {
  * @returns {Function}
  */
 exports.format = function (property, formatter) {
-    return function () {
+    return function (list) {
         formatFunctions.push(
             { property: property, formater: formatter }
 
 
         );
 
-        return roster;
+        return list;
     };
 };
 
@@ -165,10 +165,10 @@ exports.format = function (property, formatter) {
 exports.limit = function (count) {
 
 
-    return function () {
+    return function (list) {
         limit = limit < count ? limit : count;
 
-        return roster;
+        return list;
     };
 };
 
