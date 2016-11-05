@@ -68,7 +68,7 @@ exports.select = function () {
             return roster;
         }
 
-        return roster.map(function (person) {
+        return roster.slice().map(function (person) {
             var copy = {};
             keys.forEach(function (key) {
                 if (args.indexOf(key) !== -1) {
@@ -89,7 +89,7 @@ exports.select = function () {
  */
 exports.filterIn = function (property, values) {
     return function filterIn(roster) {
-        return roster.filter(function (person) {
+        return roster.slice().filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
     };
@@ -103,8 +103,8 @@ exports.filterIn = function (property, values) {
  * @returns {Function}
  */
 exports.sortBy = function (property, order) {
-    return function sortBy(list) {
-        return list.sort(function (a, b) {
+    return function sortBy(roster) {
+        return roster.slice().sort(function (a, b) {
             return DIR[order] * (a[property] - b[property]);
         });
     };
@@ -118,7 +118,7 @@ exports.sortBy = function (property, order) {
  */
 exports.format = function (property, formatter) {
     return function format(roster) {
-        return roster.map(function (person) {
+        return roster.slice().map(function (person) {
             person[property] = formatter(person[property]);
 
             return person;
