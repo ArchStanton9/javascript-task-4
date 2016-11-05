@@ -30,8 +30,8 @@ exports.query = function (collection) {
         select: []
     };
 
-    params.forEach(function (opperator) {
-        selectors[opperator.name].push(opperator);
+    params.forEach(function (operation) {
+        selectors[operation.name].push(operation);
     });
 
     Object.keys(selectors).forEach(function (selector) {
@@ -53,7 +53,7 @@ exports.select = function () {
     var args = [].slice.call(arguments);
 
     return function select(roster) {
-        return roster.slice().map(function (person) {
+        return roster.map(function (person) {
             var copy = {};
             Object.keys(person).forEach(function (key) {
                 if (args.indexOf(key) !== -1) {
@@ -75,7 +75,7 @@ exports.select = function () {
  */
 exports.filterIn = function (property, values) {
     return function filterIn(roster) {
-        return roster.slice().filter(function (person) {
+        return roster.filter(function (person) {
             return values.indexOf(person[property]) !== -1;
         });
     };
@@ -90,14 +90,12 @@ exports.filterIn = function (property, values) {
  */
 exports.sortBy = function (property, order) {
     return function sortBy(roster) {
-        return roster.slice().sort(function (a, b) {
-            a = a[property];
-            b = b[property];
-            if (a === b) {
+        return roster.sort(function (a, b) {
+            if (a[property] === b[property]) {
                 return 0;
             }
 
-            return a < b ? -DIR[order] : DIR[order];
+            return a[property] < b[property] ? -DIR[order] : DIR[order];
         });
     };
 };
@@ -111,7 +109,7 @@ exports.sortBy = function (property, order) {
  */
 exports.format = function (property, formatter) {
     return function format(roster) {
-        return roster.slice().map(function (person) {
+        return roster.map(function (person) {
             person[property] = formatter(person[property]);
 
             return person;
