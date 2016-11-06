@@ -11,13 +11,27 @@ var DIR = {
     desc: -1
 };
 
-var PRIORITY = [
-    'filterIn',
-    'sortBy',
-    'limit',
-    'format',
-    'select'
-];
+var PRIORITY = {
+    filterIn: 0,
+    sortBy: 1,
+    limit: 2,
+    format: 3,
+    select: 4
+};
+
+function getCopy(item) {
+    if (item instanceof Array) {
+        return item.map(function (element) {
+            return getCopy(element);
+        });
+    }
+
+    return Object.keys(item).reduce(function (obj, key) {
+        obj[key] = item[key];
+
+        return obj;
+    }, item);
+}
 
 /**
  * Запрос к коллекции
@@ -26,18 +40,16 @@ var PRIORITY = [
  * @returns {Array}
  */
 exports.query = function (collection) {
-    var roster = JSON.parse(JSON.stringify(collection));
+    var roster = getCopy(collection);
     var selectors = [].slice.call(arguments, 1);
 
-    selectors.sort(function (a, b) {
-        return PRIORITY.indexOf(a.name) - PRIORITY.indexOf(b.name);
-    });
-
-    selectors.forEach(function (selector) {
-        roster = selector(roster);
-    });
-
-    return roster;
+    return selectors
+        .sort(function (a, b) {
+            return PRIORITY[a.name] - PRIORITY[b.name];
+        })
+        .reduce(function (data, selector) {
+            return selector(data);
+        }, roster);
 };
 
 
