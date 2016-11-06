@@ -26,11 +26,13 @@ function getCopy(item) {
         });
     }
 
+    var copy = {};
+
     return Object.keys(item).reduce(function (obj, key) {
         obj[key] = item[key];
 
         return obj;
-    }, item);
+    }, copy);
 }
 
 /**
